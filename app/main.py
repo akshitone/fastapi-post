@@ -1,63 +1,16 @@
-from typing import Optional
-from fastapi import Body, FastAPI, Response, status, HTTPException
-from pydantic import BaseModel
-from random import randrange
-import psycopg2
-from psycopg2.extras import RealDictCursor
-import time
-import models
-from database import SessionLocal, engine
 
+from sqlalchemy.orm import Session
+from fastapi import Depends, FastAPI, HTTPException, Response, status
 
+from . import models  # import all models
+from .database import engine, get_db
+from .schemas import Post
+
+# for database compatibility with sqlalchemy
+# will create tables using models if doesn't exist
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-class Post(BaseModel):  # Post class model for post
-    title: str
-    description: str
-    published: bool = False  # False by default
-    rating: Optional[float] = None  # Optional: None by default
-
-
-while True:
-    try:
-        connection = psycopg2.connect(host='172.17.0.2', database='fastapi_post_db',
-                                      user='postgres', password='password', cursor_factory=RealDictCursor)
-        cursor = connection.cursor()
-        print("Database connection established")
-        break
-    except Exception as error:
-        print("Error connecting to database: ", error)
-        time.sleep(2)
-
-
-posts = [
-    {"title": "My Projects 01", "description": "This is a project that contains a list of projects",
-        "published": True, "rating": 4.5, "id": 123},
-    {"title": "My Projects 02", "description": "This is a project that contains a list of projects that are published",
-        "published": True, "rating": 4.2, "id": 125},
-    {"title": "My Projects 03", "description": "This is a project", "id": 127},
-]
-
-
-def find_post(id):
-    founded_post = {}
-    for post in posts:
-        if post['id'] == id:
-            founded_post = post
-            break
-
-    return founded_post
 
 
 # this is a dectorator that turns the functions into actual path operations
@@ -77,26 +30,54 @@ def root():
 
 
 @app.get('/api/v1/posts')
-def get_posts():
+def get_posts(db: Session = Depends(get_db)):
+    posts = db.query(models.Post).all()
     return {"data": posts}
 
 
 @app.post('/api/v1/posts', status_code=status.HTTP_201_CREATED)
 # def create_post(request: dict = Body(...)): # when you don't know what data you're expecting
-def create_post(post: Post):
-    post_dict = post.dict()
-    post_dict['id'] = randrange(0, 1000000)
-    posts.append(post_dict)
-    return {"data": post_dict}
+def create_post(post: Post, db: Session = Depends(get_db)):
+    new_post = models.Post(**post.dict())  # unpack the post into a dict
+    db.add(new_post)  # create a new post object
+    db.commit()  # commit to the database
+    db.refresh(new_post)  # refresh the new post with id and created_at fields
+    return {"data": new_post}
 
 
-@app.get('/api/v1/post/{id}')
-def get_post(id: int, response: Response):
-    post = find_post(id)
+@app.get('/api/v1/posts/{id}', status_code=status.HTTP_200_OK)
+def get_post(id: int, db: Session = Depends(get_db)):
+    post = db.query(models.Post).filter(models.Post.id == id).first()
+
     if not post:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail={"message": "Post not found"})  # Exception message for missing post object
-        # response.status_code = status.HTTP_404_NOT_FOUND
-        # return {"message": "Post not found"}
-
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
     return {"data": post}
+
+
+@app.delete('/api/v1/posts/{id}')
+def delete_post(id: int, db: Session = Depends(get_db)):
+    post = db.query(models.Post).filter(models.Post.id == id)
+
+    if not post.first():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+
+    post.delete(synchronize_session=False)
+    db.commit()
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@app.put('/api/v1/posts/{id}')
+def update_post(id: int, updated_post: Post, db: Session = Depends(get_db)):
+    post = db.query(models.Post).filter(models.Post.id == id)
+
+    if not post.first():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+
+    post.update(updated_post.dict(), synchronize_session=False)
+    db.commit()
+
+    return {"data": post.first()}
