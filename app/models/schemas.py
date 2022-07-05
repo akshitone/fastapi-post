@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
 # schemas define the structure of a request & response
@@ -30,3 +31,12 @@ class UserResponse(BaseModel):
     # convert sqlalchemy model to pydantic model
     class Config:
         orm_mode = True
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenRequest(BaseModel):
+    id: Optional[str] = None
