@@ -2,14 +2,17 @@ from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, status
 
 
-from app import models, schemas  # import all models and schemas
-from app.database import get_db
-from app.utils import hashing_password
+from app.models import schemas, models  # import all models and schemas
+from app.models.database import get_db
+from app.utils.utils import hashing_password
 
-router = APIRouter()
+router = APIRouter(
+    prefix='/api/v1/users',
+    tags=["User"]
+)
 
 
-@router.post('/api/v1/users/sign-up',  status_code=status.HTTP_201_CREATED, response_model=schemas.UserResponse, tags=["User"])
+@router.post('/sign-up',  status_code=status.HTTP_201_CREATED, response_model=schemas.UserResponse)
 def sign_up(user: schemas.User, db: Session = Depends(get_db)):
     existed_user = db.query(models.User).filter(
         models.User.email == user.email).first()

@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 
-from app import models  # import all models and schemas
-from app.database import engine
-from app.routes import post, user
+from app.models import models  # import all models and schemas
+from app.models.database import engine
+from app.routes import post, user, auth
 
 # for database compatibility with sqlalchemy
 # will create tables using models if doesn't exist
@@ -16,6 +16,7 @@ app = FastAPI(
 
 app.include_router(post.router)  # included post router
 app.include_router(user.router)  # included user router
+app.include_router(auth.router)  # included auth router
 
 
 # this is a dectorator that turns the functions into actual path operations

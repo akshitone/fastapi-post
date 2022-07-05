@@ -3,19 +3,22 @@ from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 
-from app import models, schemas  # import all models and schemas
-from app.database import get_db
+from app.models import schemas, models  # import all models and schemas
+from app.models.database import get_db
 
-router = APIRouter()
+router = APIRouter(
+    prefix='/api/v1/posts',
+    tags=["Post"]
+)
 
 
-@router.get('/api/v1/posts', status_code=status.HTTP_200_OK, response_model=List[schemas.PostResponse], tags=["Post"])
+@router.get('/', status_code=status.HTTP_200_OK, response_model=List[schemas.PostResponse])
 def get_posts(db: Session = Depends(get_db)):
     posts = db.query(models.Post).all()
     return posts
 
 
-@router.post('/api/v1/posts', status_code=status.HTTP_201_CREATED, response_model=schemas.PostResponse, tags=["Post"])
+@router.post('/', status_code=status.HTTP_201_CREATED, response_model=schemas.PostResponse)
 # def create_post(request: dict = Body(...)): # when you don't know what data you're expecting
 def create_post(post: schemas.Post, db: Session = Depends(get_db)):
     new_post = models.Post(**post.dict())  # unpack the post into a dict
@@ -25,7 +28,7 @@ def create_post(post: schemas.Post, db: Session = Depends(get_db)):
     return new_post
 
 
-@router.get('/api/v1/posts/{id}', status_code=status.HTTP_200_OK, response_model=schemas.PostResponse, tags=["Post"])
+@router.get('/{id}', status_code=status.HTTP_200_OK, response_model=schemas.PostResponse)
 def get_post(id: int, db: Session = Depends(get_db)):
     post = db.query(models.Post).filter(models.Post.id == id).first()
 
@@ -35,7 +38,7 @@ def get_post(id: int, db: Session = Depends(get_db)):
     return post
 
 
-@router.delete('/api/v1/posts/{id}', tags=["Post"])
+@router.delete('/{id}')
 def delete_post(id: int, db: Session = Depends(get_db)):
     post = db.query(models.Post).filter(models.Post.id == id)
 
@@ -49,7 +52,7 @@ def delete_post(id: int, db: Session = Depends(get_db)):
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.put('/api/v1/posts/{id}', response_model=schemas.PostResponse, tags=["Post"])
+@router.put('/{id}', response_model=schemas.PostResponse)
 def update_post(id: int, updated_post: schemas.Post, db: Session = Depends(get_db)):
     post = db.query(models.Post).filter(models.Post.id == id)
 

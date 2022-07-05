@@ -1,6 +1,6 @@
 from sqlalchemy import TIMESTAMP, Boolean, Column, Integer, String, text
 
-from app.database import Base
+from app.models.database import Base
 
 
 class Post(Base):
