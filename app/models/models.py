@@ -1,4 +1,5 @@
-from sqlalchemy import TIMESTAMP, Boolean, Column, Integer, String, text
+from sqlalchemy import TIMESTAMP, Boolean, Column, ForeignKey, Integer, String, text
+from sqlalchemy.orm import relationship
 
 from app.models.database import Base
 
@@ -12,6 +13,10 @@ class Post(Base):
     published = Column(Boolean, server_default='FALSE')
     created_at = Column(TIMESTAMP(timezone=True),
                         nullable=False, server_default=text('now()'))
+    user_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"),
+                     nullable=False)
+
+    user = relationship("User")  # retrive all details related to this user id
 
 
 class User(Base):

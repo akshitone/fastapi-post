@@ -12,8 +12,8 @@ router = APIRouter(
 )
 
 
-@router.post('/sign-up',  status_code=status.HTTP_201_CREATED, response_model=schemas.UserResponse)
-def sign_up(user: schemas.User, db: Session = Depends(get_db)):
+@router.post('/',  status_code=status.HTTP_201_CREATED, response_model=schemas.UserResponse)
+def create_user(user: schemas.User, db: Session = Depends(get_db)):
     existed_user = db.query(models.User).filter(
         models.User.email == user.email).first()
 
@@ -30,3 +30,9 @@ def sign_up(user: schemas.User, db: Session = Depends(get_db)):
     db.refresh(new_user)
 
     return new_user
+
+
+@router.get('/', status_code=status.HTTP_200_OK)
+def get_users(db: Session = Depends(get_db)):
+    users = db.query(models.User).all()
+    return users
