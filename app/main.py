@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.models import models  # import all models and schemas
 from app.models.database import engine
@@ -12,6 +13,16 @@ app = FastAPI(
     title="Fast API for Post and User Management",
     description="Using postgresql and sqlalchemy ORM to manage database and pydantic for schemas",
     version="0.0.1",
+)
+
+origins = ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(post.router)  # included post router
