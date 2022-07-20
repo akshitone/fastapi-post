@@ -15,6 +15,10 @@ router = APIRouter(
 
 @router.post('/login', response_model=schemas.Token, status_code=status.HTTP_200_OK)
 def login(user: schemas.User, db: Session = Depends(get_db)):
+    if not user.email or not user.password:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail="Please enter valid email or password")
+
     existed_user = db.query(models.User).filter(
         models.User.email == user.email).first()
 
